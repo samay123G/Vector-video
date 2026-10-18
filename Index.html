@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt2Vector Video Engine</title>
+
+<style>
+:root {
+    --bg: #F5F0E6;
+    --panel: #FFFFFF;
+    --accent: #E34234;
+    --dark: #1E1A18;
+    --green: #27ae60;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: var(--bg);
+    color: var(--dark);
+    padding: 16px;
+}
+
+.app {
+    max-width: 1200px;
+    margin: auto;
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 24px;
+    padding: 22px;
+    background: white;
+    border: 3px solid var(--dark);
+    border-radius: 16px;
+    box-shadow: 7px 7px 0 var(--dark);
+}
+
+.editor {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-width: 0;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--dark);
+}
+
+h1 {
+    font-size: clamp(19px, 3vw, 26px);
+    font-weight: 900;
+}
+
+.badge {
+    font-size: 10px;
+    background: var(--accent);
+    color: white;
+    padding: 4px 7px;
+    border-radius: 5px;
+    vertical-align: middle;
+}
+
+.presets {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+button {
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.preset, .ctrl {
+    background: var(--bg);
+    color: var(--dark);
+    border: 2px solid var(--dark);
+    border-radius: 6px;
+    padding: 9px;
+}
+
+label {
+    font-size: 13px;
+    font-weight: bold;
+}
+
+textarea {
+    width: 100%;
+    min-height: 300px;
+    padding: 14px;
+    border: 2px solid var(--dark);
+    border-radius: 9px;
+    background: var(--bg);
+    color: var(--dark);
+    font: 14px/1.6 monospace;
+    resize: vertical;
+}
+
+textarea:focus {
+    outline: 2px solid var(--accent);
+}
+
+.guide {
+    padding: 12px;
+    background: #EFECE4;
+    border: 2px dashed #999;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+.guide code {
+    background: white;
+    padding: 2px 4px;
+}
+
+.actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.main-btn {
+    flex: 1;
+    min-width: 145px;
+    padding: 14px;
+    color: white;
+    border: 2px solid var(--dark);
+    border-radius: 9px;
+    box-shadow: 4px 4px 0 var(--dark);
+    font-size: 14px;
+}
+
+.main-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0 var(--dark);
+}
+
+.main-btn:disabled {
+    opacity: .6;
+    cursor: wait;
+}
+
+.build {
+    background: var(--accent);
+}
+
+.export {
+    background: var(--green);
+}
+
+.player {
+    background: #EFECE4;
+    padding: 15px;
+    border: 2px solid var(--dark);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.canvas-wrap {
+    width: 100%;
+    max-width: 320px;
+    aspect-ratio: 9 / 16;
+    background: var(--bg);
+    border: 3px solid var(--dark);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.controls {
+    width: 100%;
+    max-width: 320px;
+    padding: 12px;
+    border: 2px solid var(--dark);
+    border-radius: 9px;
+    background: white;
+}
+
+.seek-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font: bold 12px monospace;
+    margin-bottom: 12px;
+}
+
+input[type=range] {
+    width: 100%;
+    min-width: 0;
+    accent-color: var(--accent);
+}
+
+.buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.ctrl {
+    flex: 1;
+    padding: 8px 3px;
+    font-size: 12px;
+}
+
+.status {
+    text-align: center;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: bold;
+    min-height: 18px;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 850px) {
+    .app {
+        grid-template-columns: 1fr;
+        padding: 14px;
+    }
+
+    textarea {
+        min-height: 230px;
+    }
+
+    .player {
+        width: 100%;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+    <section class="editor">
+
+        <div class="header">
+            <h1>Prompt2Vector <span class="badge">ENGINE</span></h1>
+
+            <div class="presets">
+                <button class="preset" id="chaiPreset">☕ Chai</button>
+                <button class="preset" id="storyPreset">🏃 Story</button>
+                <button class="preset" id="neonPreset">⚡ Neon</button>
+            </div>
+        </div>
+
+        <label for="prompt">MULTI-SCENE PROMPT — HAR LINE EK SCENE</label>
+
+        <textarea id="prompt" spellcheck="false">Scene 1 (6s): minimal style, room background, chai cup with steam. "चाय का कप उठ रहा है।"
+
+Scene 2 (7s): dark style, grid background, laptop, zoom. "आज हम कुछ नया सीखेंगे।"
+
+Scene 3 (7s): neon style, city background, car. "सपने पूरे करने के लिए आगे बढ़ते रहो।"</textarea>
+
+        <div class="guide">
+            <b>Quick Tips</b><br>
+            • Duration: <code>Scene 1 (6s):</code><br>
+            • Styles: <code>minimal</code>, <code>dark</code>, <code>neon</code><br>
+            • Backgrounds: <code>room</code>, <code>grid</code>, <code>city</code><br>
+            • Objects: <code>chai</code>, <code>character</code>, <code>laptop</code>, <code>phone</code>, <code>car</code>, <code>graph</code>, <code>bulb</code>, <code>clock</code>, <code>money</code><br>
+            • Captions: Hindi text ko double quotes mein likhein.
+        </div>
+
+        <div class="actions">
+            <button class="main-btn build" id="build">⚡ Generate & Play</button>
+            <button class="main-btn export" id="export">⬇ Export Video</button>
+        </div>
+
+    </section>
+
+    <section class="player">
+
+        <div class="canvas-wrap">
+            <canvas id="stage" width="540" height="960"></canvas>
+        </div>
+
+        <div class="controls">
+
+            <div class="seek-row">
+                <span id="current">00:00</span>
+                <input type="range" id="seek" min="0" max="100" value="0">
+                <span id="duration">00:20</span>
+            </div>
+
+            <div class="buttons">
+                <button class="ctrl" id="back">⏪ -5s</button>
+                <button class="ctrl" id="playPause">⏸ Pause</button>
+                <button class="ctrl" id="forward">+5s ⏩</button>
+                <button class="ctrl" id="mute">🔊 Sound</button>
+            </div>
+
+        </div>
+
+        <div class="status" id="status">Ready — enter your prompt</div>
+
+    </section>
+
+</div>
+
+<script>
+"use strict";
+
+const canvas = document.getElementById("stage");
+const ctx = canvas.getContext("2d");
+
+const W = canvas.width;
+const H = canvas.height;
+const FPS = 30;
+
+const $ = id => document.getElementById(id);
+
+let scenes = [];
+let totalFrames = FPS * 20;
+let frame = 0;
+let playing = false;
+let muted = false;
+let raf = null;
+let lastTimestamp = 0;
+let accumulator = 0;
+let recorder = null;
+let recordedChunks = [];
+let exporting = false;
+let audioContext = null;
+let speechEnabled = true;
+
+const presets = {
+    chai: `Scene 1 (6s): minimal style, room background, chai cup with steam. "चाय का कप उठ रहा है।"
+Scene 2 (7s): minimal style, room background, chai cup, wrong cut, zoom. "गलत कट वीडियो को खराब कर सकता है।"
+Scene 3 (7s): minimal style, room background, green accent, chai cup. "सही कट वीडियो को स्मूथ बनाता है।"`,
+
+    story: `Scene 1 (8s): minimal style, room background, character, clock. "हर दिन एक नया अवसर लेकर आता है।"
+Scene 2 (8s): dark style, grid background, bulb, zoom. "एक छोटा विचार आपकी दुनिया बदल सकता है।"
+Scene 3 (8s): minimal style, room background, laptop. "आज ही अपने लक्ष्य की शुरुआत करो।"`,
+
+    neon: `Scene 1 (8s): neon style, city background, car. "रात की सड़कों पर रफ्तार का जादू।"
+Scene 2 (8s): neon style, grid background, phone, zoom. "एक विचार से नई दुनिया बनाओ।"`
+};
+
+function setStatus(message) {
+    $("status").textContent = message;
+}
+
+function formatTime(seconds) {
+    seconds = Math.max(0, Math.floor(seconds));
+    return String(Math.floor(seconds / 60)).padStart(2, "0")
+        + ":" + String(seconds % 60).padStart(2, "0");
+}
+
+function parseScenes(text) {
+    const lines = text.split(/\n+/).map(s => s.trim()).filter(Boolean);
+
+    if (!lines.length) {
+        throw new Error("Please enter at least one scene prompt.");
+    }
+
+    let start = 0;
+
+    const result = lines.map((line, index) => {
+        const durationMatch = line.match(/\((\d+)\s*s(?:ec(?:onds?)?)?\)/i)
+            || line.match(/(\d+)\s*(?:seconds|secs|sec|s)\b/i);
+
+        let seconds = durationMatch ? Number(durationMatch[1]) : 6;
+        seconds = Math.min(60, Math.max(2, seconds));
+
+        const lower = line.toLowerCase();
+
+        const quoteMatch = line.match(/"([^"]+)"/);
+        const caption = quoteMatch
+            ? quoteMatch[1]
+            : line.replace(/^scene\s*\d+\s*(?:\(\d+s\))?\s*:/i, "").trim();
+
+        let style = "minimal";
+        if (lower.includes("dark")) style = "dark";
+        if (lower.includes("neon")) style = "neon";
+
+        let background = "room";
+        if (lower.includes("grid")) background = "grid";
+        if (lower.includes("city") || lower.includes("road")) background = "city";
+
+        const aliases = [
+            ["character", ["character", "person"]],
+            ["chai", ["chai", "cup"]],
+            ["laptop", ["laptop", "computer"]],
+            ["phone", ["phone", "mobile"]],
+            ["car", ["car"]],
+            ["graph", ["graph", "chart"]],
+            ["bulb", ["bulb", "idea"]],
+            ["clock", ["clock"]],
+            ["money", ["money", "coin"]]
+        ];
+
+        let object = "chai";
+
+        for (const [name, words] of aliases) {
+            if (words.some(word => lower.includes(word))) {
+                object = name;
+                break;
+            }
+        }
+
+        let accent = "#E34234";
+
+        if (lower.includes("blue")) accent = "#2980B9";
+        if (lower.includes("green")) accent = "#27AE60";
+        if (lower.includes("yellow")) accent = "#F39C12";
+
+        const hex = line.match(/#[0-9a-f]{6}\b/i);
+        if (hex) accent = hex[0];
+
+        const scene = {
+            index,
+            start,
+            end: start + seconds * FPS,
+            frames: seconds * FPS,
+            seconds,
+            caption: caption || `Scene ${index + 1}`,
+            style,
+            background,
+            object,
+            accent,
+            zoom: /\bzoom\b|\bclose[\s-]?up\b/i.test(lower),
+            wrongCut: lower.includes("wrong cut") || lower.includes("jerk")
+        };
+
+        start = scene.end;
+        return scene;
+    });
+
+    return {
+        scenes: result,
+        totalFrames: start
+    };
+}
+
+function roundedRect(x, y, w, h, r, fill, stroke) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+
+    if (fill) {
+        ctx.fillStyle = fill;
+        ctx.fill();
+    }
+
+    if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+    }
+}
+
+function drawWrapped(text, x, y, maxWidth, lineHeight) {
+    ctx.textAlign = "left";
+
+    const words = text.split(/\s+/);
+    let line = "";
+    let currentY = y;
+
+    for (const word of words) {
+        const test = line ? line + " " + word : word;
+
+        if (ctx.measureText(test).width > maxWidth && line) {
+            ctx.fillText(line, x, currentY);
+            line = word;
+            currentY += lineHeight;
+
+            if (currentY > y + lineHeight * 3) break;
+        } else {
+            line = test;
+        }
+    }
+
+    if (line && currentY <= y + lineHeight * 3) {
+        ctx.fillText(line, x, currentY);
+    }
+}
+
+function drawBackground(scene, x, y, w, h, localFrame) {
+    const ink = scene.style === "neon" ? "#00F5D4"
+        : scene.style === "dark" ? "#F4F4F5" : "#1E1A18";
+
+    if (scene.background === "grid") {
+        ctx.strokeStyle = ink;
+        ctx.globalAlpha = 0.12;
+        ctx.lineWidth = 1;
+
+        for (let gx = x; gx <= x + w; gx += 30) {
+            ctx.beginPath();
+            ctx.moveTo(gx, y);
+            ctx.lineTo(gx, y + h);
+            ctx.stroke();
+        }
+
+        for (let gy = y; gy <= y + h; gy += 30) {
+            ctx.beginPath();
+            ctx.moveTo(x, gy);
+            ctx.lineTo(x + w, gy);
+            ctx.stroke();
+        }
+
+        ctx.globalAlpha = 1;
+    }
+
+    if (scene.background === "room") {
+        ctx.globalAlpha = 0.35;
+        ctx.strokeStyle = ink;
+        ctx.lineWidth = 3;
+
+        ctx.strokeRect(x + 30, y + 25, 110, 125);
+
+        ctx.beginPath();
+        ctx.moveTo(x + 85, y + 25);
+        ctx.lineTo(x + 85, y + 150);
+        ctx.moveTo(x + 30, y + 85);
+        ctx.lineTo(x + 140, y + 85);
+        ctx.stroke();
+
+        ctx.globalAlpha = 1;
+
+        ctx.fillStyle = scene.style === "dark" ? "#42332B" : "#B88962";
+        ctx.fillRect(x, y + h - 75, w, 75);
+    }
+
+    if (scene.background === "city") {
+        ctx.globalAlpha = 0.25;
+        ctx.fillStyle = ink;
+
+        const shift = (localFrame * 2) % 110;
+
+        for (let i = -1; i < 6; i++) {
+            const bx = x + i * 100 - shift;
+            const bh = 80 + Math.abs((i * 37) % 100);
+
+            ctx.fillRect(bx, y + h - 80 - bh, 75, bh);
+
+            ctx.globalAlpha = 0.5;
+
+            ctx.fillStyle = scene.accent;
+
+            for (let wy = y + h - 80 - bh + 15; wy < y + h - 95; wy += 25) {
+                ctx.fillRect(bx + 12, wy, 8, 10);
+                ctx.fillRect(bx + 35, wy, 8, 10);
+            }
+
+            ctx.fillStyle = ink;
+            ctx.globalAlpha = 0.25;
+        }
+
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = "#333333";
+        ctx.fillRect(x, y + h - 80, w, 80);
+    }
+
+    return ink;
+}
+
+function drawObject(scene, x, y, w, h, localFrame, progress, ink) {
+    const cx = x + w / 2;
+    const cy = y + h / 2 + Math.sin(localFrame / 8) * 5;
+
+    ctx.save();
+    ctx.strokeStyle = ink;
+    ctx.fillStyle = scene.accent;
+    ctx.lineWidth = 5;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+
+    switch (scene.object) {
+        case "chai": {
+            const lift = progress * 35;
+            const cupX = cx - 65;
+            const cupY = cy - 20 - lift;
+
+            ctx.strokeStyle = "#BBBBBB";
+            ctx.lineWidth = 3;
+
+            for (let i = 0; i < 3; i++) {
+                const sx = cupX + 25 + i * 22;
+                const sy = cupY - 15 - Math.sin(localFrame / 5 + i) * 8;
+
+                ctx.beginPath();
+                ctx.moveTo(sx, sy + 10);
+                ctx.quadraticCurveTo(sx - 12, sy, sx, sy - 10);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = "#FFFFFF";
+            ctx.strokeStyle = ink;
+
+            ctx.beginPath();
+            ctx.moveTo(cupX, cupY);
+            ctx.lineTo(cupX + 100, cupY);
+            ctx.lineTo(cupX + 85, cupY + 100);
+            ctx.lineTo(cupX + 15, cupY + 100);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.ellipse(cupX + 50, cupY, 50, 13, 0, 0, Math.PI * 2);
+            ctx.fillStyle = "#A65B32";
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.ellipse(cupX + 110, cupY + 38, 22, 30, 0, -1.3, 1.3);
+            ctx.stroke();
+            break;
+        }
+
+        case "laptop": {
+            roundedRect(cx - 90, cy - 65, 180, 120, 8, "#333333", ink);
+
+            ctx.fillStyle = "#9BE7FF";
+            ctx.fillRect(cx - 78, cy - 53, 156, 94);
+
+            ctx.fillStyle = scene.accent;
+            ctx.fillRect(cx - 58, cy - 25, 116, 10);
+            ctx.fillRect(cx - 58, cy - 5, 75, 10);
+            ctx.fillRect(cx - 58, cy + 15, 95, 10);
+
+            ctx.fillStyle = "#BBBBBB";
+            ctx.beginPath();
+            ctx.moveTo(cx - 110, cy + 58);
+            ctx.lineTo(cx + 110, cy + 58);
+            ctx.lineTo(cx + 85, cy + 75);
+            ctx.lineTo(cx - 85, cy + 75);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            break;
+        }
+
+        case "phone": {
+            roundedRect(cx - 48, cy - 100, 96, 200, 15, "#222222", ink);
+
+            ctx.fillStyle = "#D9F2FF";
+            ctx.fillRect(cx - 37, cy - 80, 74, 158);
+
+            ctx.fillStyle = scene.accent;
+            ctx.beginPath();
+            ctx.arc(cx, cy - 30, 20, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillRect(cx - 25, cy + 5, 50, 8);
+            ctx.fillRect(cx - 25, cy + 22, 40, 8);
+            break;
+        }
+
+        case "car": {
+            ctx.fillStyle = scene.accent;
+
+            ctx.beginPath();
+            ctx.moveTo(cx - 125, cy + 20);
+            ctx.lineTo(cx - 90, cy - 35);
+            ctx.lineTo(cx + 45, cy - 35);
+            ctx.lineTo(cx + 100, cy + 20);
+            ctx.lineTo(cx + 125, cy + 25);
+            ctx.lineTo(cx + 125, cy + 65);
+            ctx.lineTo(cx - 125, cy + 65);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = "#BDEBFF";
+
+            ctx.beginPath();
+            ctx.moveTo(cx - 70, cy - 25);
+            ctx.lineTo(cx - 45, cy - 25);
+            ctx.lineTo(cx - 45, cy + 12);
+            ctx.lineTo(cx - 95, cy + 12);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(cx - 75, cy + 65, 24, 0, Math.PI * 2);
+            ctx.arc(cx + 75, cy + 65, 24, 0, Math.PI * 2);
+            ctx.fillStyle = "#222222";
+            ctx.fill();
+            ctx.stroke();
+            break;
+        }
+
+        case "character": {
+            ctx.fillStyle = "#F0C19A";
+
+            ctx.beginPath();
+            ctx.arc(cx, cy - 70, 43, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = scene.accent;
+            ctx.beginPath();
+            ctx.roundRect(cx - 55, cy - 20, 110, 105, 20);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(cx - 35, cy + 85);
+            ctx.lineTo(cx - 45, cy + 130);
+            ctx.moveTo(cx + 35, cy + 85);
+            ctx.lineTo(cx + 45, cy + 130);
+            ctx.stroke();
+            break;
+        }
+
+        case "graph": {
+            ctx.strokeStyle = ink;
+            ctx.beginPath();
+            ctx.moveTo(cx - 110, cy + 90);
+            ctx.lineTo(cx - 110, cy - 90);
+            ctx.moveTo(cx - 110, cy + 90);
+            ctx.lineTo(cx + 120, cy + 90);
+            ctx.stroke();
+
+            const heights = [55, 100, 75, 145, 175];
+
+            heights.forEach((height, i) => {
+                const barHeight = height * Math.min(1, progress * 3 + 0.1);
+
+                ctx.fillStyle = scene.accent;
+                ctx.fillRect(cx - 85 + i * 42, cy + 85 - barHeight, 27, barHeight);
+                ctx.strokeRect(cx - 85 + i * 42, cy + 85 - barHeight, 27, barHeight);
+            });
+            break;
+        }
+
+        case "bulb": {
+            ctx.fillStyle = "#FFD65A";
+
+            ctx.beginPath();
+            ctx.arc(cx, cy - 25, 65, Math.PI, 0);
+            ctx.lineTo(cx + 35, cy + 40);
+            ctx.lineTo(cx - 35, cy + 40);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = "#BBBBBB";
+            ctx.fillRect(cx - 28, cy + 40, 56, 20);
+            ctx.strokeRect(cx - 28, cy + 40, 56, 20);
+
+            ctx.beginPath();
+            ctx.moveTo(cx - 18, cy + 70);
+            ctx.lineTo(cx + 18, cy + 70);
+            ctx.stroke();
+
+            for (let i = 0; i < 8; i++) {
+                const angle = i * Math.PI / 4;
+                const ax = cx + Math.cos(angle) * 90;
+                const ay = cy - 25 + Math.sin(angle) * 90;
+
+                ctx.beginPath();
+                ctx.moveTo(ax, ay);
+                ctx.lineTo(cx + Math.cos(angle) * 115, cy - 25 + Math.sin(angle) * 115);
+                ctx.stroke();
+            }
+            break;
+        }
+
+        case "clock": {
+            ctx.fillStyle = "#FFFFFF";
+            ctx.beginPath();
+            ctx.arc(cx, cy, 95, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            for (let i = 0; i < 12; i++) {
+                const angle = i * Math.PI / 6;
+                ctx.beginPath();
+                ctx.moveTo(cx + Math.sin(angle) * 78, cy - Math.cos(angle) * 78);
+                ctx.lineTo(cx + Math.sin(angle) * 85, cy - Math.cos(angle) * 85);
+                ctx.stroke();
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx, cy - 55);
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + 42, cy + 15);
+            ctx.stroke();
+            break;
+        }
+
+        case "money": {
+            roundedRect(cx - 110, cy - 65, 220, 130, 10, "#63C77A", ink);
+
+            ctx.strokeStyle = "#FFFFFF";
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, 45, 45, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = "#FFFFFF";
+            ctx.font = "bold 65px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("₹", cx, cy);
+            break;
+        }
+    }
+
+    ctx.restore();
+}
+
+function drawTimeline(scene, ink) {
+    const x = 45;
+    const y = 860;
+    const w = 450;
+
+    ctx.fillStyle = ink;
+    ctx.font = "bold 17px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText("PROMPT2VECTOR", x, y);
+
+    ctx.fillStyle = "rgba(120,120,120,0.25)";
+    ctx.fillRect(x, y + 18, w, 8);
+
+    ctx.fillStyle = scene.accent;
+    ctx.fillRect(x, y + 18, w * (frame / totalFrames), 8);
+
+    ctx.font = "14px Arial";
+    ctx.fillText("SCENE " + (scene.index + 1) + " / " + scenes.length, x, y + 55);
+}
+
+function drawFrame(f) {
+    if (!scenes.length) return;
+
+    frame = Math.max(0, Math.min(f, totalFrames - 1));
+
+    const scene = scenes.find(s => frame >= s.start && frame < s.end)
+        || scenes[scenes.length - 1];
+
+    const local = frame - scene.start;
+    const progress = local / scene.frames;
+
+    const bg = scene.style === "dark" ? "#18181B"
+        : scene.style === "neon" ? "#090A0F" : "#F5F0E6";
+
+    const panel = scene.style === "dark" ? "#27272A"
+        : scene.style === "neon" ? "#12131F" : "#EFECE4";
+
+    const ink = scene.style === "dark" ? "#F4F4F5"
+        : scene.style === "neon" ? "#00F5D4" : "#1E1A18";
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = ink;
+    ctx.font = "bold 18px monospace";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(`SCENE ${scene.index + 1}/${scenes.length}`, 45, 70);
+
+    ctx.textAlign = "right";
+    ctx.fillText(formatTime(frame / FPS), 495, 70);
+
+    ctx.textAlign = "left";
+    ctx.fillStyle = scene.accent;
+    ctx.fillRect(45, 92, 80, 6);
+
+    ctx.fillStyle = ink;
+    ctx.font = "bold 31px Arial";
+
+    const wordList = scene.caption.split(/\s+/);
+    const visibleWords = Math.min(wordList.length, Math.floor(local / 5) + 1);
+
+    drawWrapped(
+        wordList.slice(0, visibleWords).join(" "),
+        45, 160, 450, 42
+    );
+
+    const bx = 45, by = 300, bw = 450, bh = 460;
+
+    roundedRect(bx + 6, by + 6, bw, bh, 15, "rgba(0,0,0,0.18)", null);
+    roundedRect(bx, by, bw, bh, 15, panel, ink);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw, bh, 15);
+    ctx.clip();
+
+    if (scene.zoom) {
+        const scale = 1 + Math.min(0.4, progress * 0.4);
+        ctx.translate(bx + bw / 2, by + bh / 2);
+        ctx.scale(scale, scale);
+        ctx.translate(-(bx + bw / 2), -(by + bh / 2));
+    }
+
+    drawBackground(scene, bx, by, bw, bh, local);
+
+    let jerk = scene.wrongCut && local % 8 < 4 ? 7 : 0;
+
+    ctx.translate(jerk, 0);
+    drawObject(scene, bx, by, bw, bh, local, progress, ink);
+
+    ctx.restore();
+
+    drawTimeline(scene, ink);
+
+    $("current").textContent = formatTime(frame / FPS);
+    $("duration").textContent = formatTime(totalFrames / FPS);
+    $("seek").value = totalFrames > 1 ? frame / (totalFrames - 1) * 100 : 0;
+}
+
+function stopAnimationLoop() {
+    if (raf !== null) {
+        cancelAnimationFrame(raf);
+        raf = null;
+    }
+}
+
+function animationLoop(timestamp) {
+    if (!playing) return;
+
+    if (!lastTimestamp) lastTimestamp = timestamp;
+
+    const delta = Math.min(timestamp - lastTimestamp, 100);
+    lastTimestamp = timestamp;
+    accumulator += delta;
+
+    const frameDuration = 1000 / FPS;
+
+    while (accumulator >= frameDuration) {
+        frame++;
+        accumulator -= frameDuration;
+
+        if (frame >= totalFrames) {
+            frame = 0;
+
+            if (exporting && recorder && recorder.state === "recording") {
+                stopPlayback();
+                recorder.stop();
+                setStatus("Video export completed.");
+                return;
+            }
+        }
+
+        drawFrame(frame);
+    }
+
+    raf = requestAnimationFrame(animationLoop);
+}
+
+function startPlayback() {
+    if (!scenes.length) {
+        generate();
+        return;
+    }
+
+    playing = true;
+    lastTimestamp = 0;
+    accumulator = 0;
+
+    $("playPause").textContent = "⏸ Pause";
+    setStatus("Playing animation...");
+
+    stopAnimationLoop();
+    raf = requestAnimationFrame(animationLoop);
+}
+
+function stopPlayback() {
+    playing = false;
+    stopAnimationLoop();
+
+    $("playPause").textContent = "▶ Play";
+    lastTimestamp = 0;
+}
+
+function generate() {
+    try {
+        stopPlayback();
+
+        const parsed = parseScenes($("prompt").value);
+
+        scenes = parsed.scenes;
+        totalFrames = parsed.totalFrames;
+        frame = 0;
+
+        drawFrame(0);
+
+        setStatus(`${scenes.length} scenes generated successfully.`);
+        startPlayback();
+    } catch (error) {
+        setStatus("Error: " + error.message);
+        console.error(error);
+    }
+}
+
+function initAudio() {
+    if (!audioContext) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+        if (AudioContextClass) {
+            audioContext = new AudioContextClass();
+        }
+    }
+
+    if (audioContext && audioContext.state === "suspended") {
+        audioContext.resume();
+    }
+}
+
+function beep(frequency = 440, duration = 0.08) {
+    if (muted) return;
+
+    try {
+        initAudio();
+
+        if (!audioContext) return;
+
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        oscillator.frequency.value = frequency;
+        oscillator.type = "sine";
+
+        gain.gain.setValueAtTime(0.035, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            audioContext.currentTime + duration
+        );
+
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + duration);
+    } catch (error) {
+        console.warn("Audio unavailable:", error);
+    }
+}
+
+function exportVideo() {
+    if (!scenes.length) {
+        generate();
+
+        if (!scenes.length) return;
+    }
+
+    if (!canvas.captureStream || !window.MediaRecorder) {
+        setStatus("Video export unsupported in this browser. Try Chrome or Edge.");
+        return;
+    }
+
+    if (exporting) {
+        setStatus("An export is already in progress.");
+        return;
+    }
+
+    try {
+        stopPlayback();
+
+        frame = 0;
+        drawFrame(0);
+
+        const stream = canvas.captureStream(FPS);
+
+        let mimeType = "";
+
+        if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) {
+            mimeType = "video/webm;codecs=vp9";
+        } else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp8")) {
+            mimeType = "video/webm;codecs=vp8";
+        } else if (MediaRecorder.isTypeSupported("video/webm")) {
+            mimeType = "video/webm";
+        }
+
+        if (!mimeType) {
+            stream.getTracks().forEach(track => track.stop());
+            setStatus("This browser does not support WebM recording.");
+            return;
+        }
+
+        recordedChunks = [];
+
+        recorder = new MediaRecorder(stream, {
+            mimeType,
+            videoBitsPerSecond: 5000000
+        });
+
+        recorder.ondataavailable = event => {
+            if (event.data && event.data.size > 0) {
+                recordedChunks.push(event.data);
+            }
+        };
+
+        recorder.onerror = event => {
+            exporting = false;
+            stopPlayback();
+            stream.getTracks().forEach(track => track.stop());
+            setStatus("Export failed: " + (event.error?.message || "unknown error"));
+        };
+
+        recorder.onstop = () => {
+            exporting = false;
+            stopPlayback();
+
+            stream.getTracks().forEach(track => track.stop());
+
+            if (!recordedChunks.length) {
+                setStatus("No video data recorded. Please try again.");
+                return;
+            }
+
+            const blob = new Blob(recordedChunks, { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+
+            link.href = url;
+            link.download = "prompt2vector-video.webm";
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+
+            setStatus(
+                `Video downloaded successfully (${(blob.size / 1024 / 1024).toFixed(2)} MB).`
+            );
+            $("export").disabled = false;
+        };
+
+        exporting = true;
+        $("export").disabled = true;
+
+        recorder.start(250);
+
+        setStatus("Recording video... Please wait until playback finishes.");
+        startPlayback();
+
+    } catch (error) {
+        exporting = false;
+        $("export").disabled = false;
+        stopPlayback();
+
+        console.error(error);
+        setStatus("Export error: " + error.message);
+    }
+}
+
+$("build").addEventListener("click", () => {
+    initAudio();
+    generate();
+});
+
+$("export").addEventListener("click", exportVideo);
+
+$("playPause").addEventListener("click", () => {
+    if (playing) {
+        stopPlayback();
+        setStatus("Paused.");
+    } else {
+        initAudio();
+        startPlayback();
+    }
+});
+
+$("back").addEventListener("click", () => {
+    frame = Math.max(0, frame - 5 * FPS);
+    drawFrame(frame);
+});
+
+$("forward").addEventListener("click", () => {
+    frame = Math.min(totalFrames - 1, frame + 5 * FPS);
+    drawFrame(frame);
+});
+
+$("seek").addEventListener("input", event => {
+    frame = Math.round(Number(event.target.value) / 100 * (totalFrames - 1));
+    drawFrame(frame);
+});
+
+$("mute").addEventListener("click", () => {
+    muted = !muted;
+    $("mute").textContent = muted ? "🔇 Muted" : "🔊 Sound";
+});
+
+$("chaiPreset").addEventListener("click", () => {
+    $("prompt").value = presets.chai;
+    generate();
+});
+
+$("storyPreset").addEventListener("click", () => {
+    $("prompt").value = presets.story;
+    generate();
+});
+
+$("neonPreset").addEventListener("click", () => {
+    $("prompt").value = presets.neon;
+    generate();
+});
+
+window.addEventListener("keydown", event => {
+    if (event.code === "Space" &&
+        !["TEXTAREA", "INPUT", "BUTTON"].includes(document.activeElement.tagName)) {
+        event.preventDefault();
+
+        if (playing) {
+            stopPlayback();
+        } else {
+            startPlayback();
+        }
+    }
+});
+
+window.addEventListener("beforeunload", () => {
+    stopPlayback();
+
+    if (audioContext) {
+        audioContext.close();
+    }
+});
+
+drawFrame(0);
+</script>
+
+</body>
+</html>
